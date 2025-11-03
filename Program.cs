@@ -1,11 +1,18 @@
+using System.IO; // for Directory.CreateDirectory in SmtpEmailService
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.EntityFrameworkCore;
-using RMPortal.Services;
+
+using RMPortal.Data;      // AppDbContext
+using RMPortal.Services;  // IEmailService, SmtpEmailService, IFakeAdService
 
 var builder = WebApplication.CreateBuilder(args);
 
-// 1) Services (ALL registrations happen BEFORE Build)
+// 1) Services
 builder.Services.AddControllersWithViews();
+
+// Email options + service
+builder.Services.Configure<EmailOptions>(builder.Configuration.GetSection("Email"));
+builder.Services.AddSingleton<IEmailService, SmtpEmailService>();
 
 // DbContext
 builder.Services.AddDbContext<AppDbContext>(opt =>
@@ -19,17 +26,16 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         opts.AccessDeniedPath = "/Account/AccessDenied";
     });
 
+// Authorization + policies (one call only)
 builder.Services.AddAuthorization(options =>
 {
-    // You can add policies if needed, roles are coming from your fake AD login
+    options.AddPolicy("IsManager",  p => p.RequireClaim("groups", "RM_LineManagers"));
+    options.AddPolicy("IsSecurity", p => p.RequireClaim("groups", "RM_Security"));
+    options.AddPolicy("IsIT",       p => p.RequireClaim("groups", "RM_ITAdmins"));
 });
 
 // SignalR
 builder.Services.AddSignalR();
-
-// Email
-builder.Services.Configure<EmailOptions>(builder.Configuration.GetSection("Email"));
-builder.Services.AddScoped<IEmailService, SmtpEmailService>();
 
 // Fake AD for dev
 builder.Services.AddSingleton<IFakeAdService, FakeAdService>();
@@ -48,10 +54,11 @@ app.UseHttpsRedirection();
 app.UseStaticFiles();
 
 app.UseRouting();
-app.UseAuthentication();  // must be BEFORE UseAuthorization
+
+app.UseAuthentication();
 app.UseAuthorization();
 
-// 4) Endpoints (Areas + default)
+// 4) Endpoints
 app.MapControllerRoute(
     name: "areas",
     pattern: "{area:exists}/{controller=Home}/{action=Index}/{id?}");
@@ -60,7 +67,13 @@ app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");
 
-// SignalR hub
 app.MapHub<NotificationHub>("/hubs/notify");
+
+// (Optional) auto-apply migrations so SQLite has all tables
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    db.Database.Migrate();
+}
 
 app.Run();

@@ -1,30 +1,27 @@
-@model IEnumerable<RMPortal.Services.FakeUser> 
+@model IEnumerable<RMPortal.Services.FakeUser>
+@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
 @{
-    ViewData["Title"] = "Sign in";
+    ViewData["Title"] = "Login";
     var returnUrl = ViewBag.ReturnUrl as string;
 }
 
-<h2>Sign in (Fake AD)</h2>
-<p>Select a user to simulate AD login.</p>
-
+<h2>Dev Login</h2>
 <form asp-action="Login" method="post">
+    @Html.AntiForgeryToken()
     <input type="hidden" name="returnUrl" value="@returnUrl" />
     <div class="mb-3">
-        <label class="form-label">User</label>
+        <label class="form-label">Choose user</label>
         <select name="sam" class="form-select">
             @foreach (var u in Model)
             {
-                <option value="@u.Sam">@u.DisplayName (@u.Sam) — @string.Join(", ", u.Groups)</option>
+                <option value="@u.Sam">@u.DisplayName (@u.Sam)</option>
             }
         </select>
     </div>
-    <button type="submit" class="btn btn-primary">Sign in</button>
+    <button class="btn btn-primary" type="submit">Login</button>
 </form>
 
-@if (!ViewData.ModelState.IsValid)
-{
-    <div class="text-danger mt-3">
-        @foreach (var e in ViewData.ModelState.Values.SelectMany(v => v.Errors))
-        { <div>@e.ErrorMessage</div> }
-    </div>
-}
+<hr />
+<p class="small text-muted mb-0">
+    Tip: <b>bob</b> → RM_LineManagers, <b>carol</b> → RM_Security, <b>dave</b> → RM_ITAdmins.
+</p>

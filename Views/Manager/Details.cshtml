@@ -1,0 +1,73 @@
+@model MediaAccessRequest
+@{
+    ViewData["Title"] = $"Request {Model.RequestNumber} - Manager Review";
+}
+
+<h2>Manager Review: @Model.RequestNumber</h2>
+<hr />
+
+<div class="mb-2"><b>Status:</b> @Model.Status</div>
+<div class="mb-2"><b>Requester:</b> @Model.Name (@Model.LoginName)</div>
+<div class="mb-2"><b>Department:</b> @Model.Department</div>
+<div class="mb-2"><b>Employment Status:</b> @Model.EmploymentStatus</div>
+<div class="mb-2"><b>Employee Number / Employer:</b> @Model.EmployeeNumberOrEmployer</div>
+<div class="mb-2"><b>Title:</b> @Model.Title</div>
+<div class="mb-2"><b>Office Ext:</b> @Model.OfficeExtension</div>
+<div class="mb-2"><b>Directorate:</b> @Model.Directorate</div>
+<div class="mb-2"><b>User Machine ID:</b> @Model.UserMachineId</div>
+
+<div class="row mt-3">
+    <div class="col-md-6">
+        <b>Start Date:</b> @Model.StartDate?.ToString("yyyy-MM-dd")
+    </div>
+    <div class="col-md-6">
+        <b>End Date:</b> @Model.EndDate?.ToString("yyyy-MM-dd")
+    </div>
+</div>
+
+<div class="mt-3">
+    <b>Classification:</b> @Model.Classification
+</div>
+
+<div class="mt-3">
+    <b>Justification:</b><br />
+    <pre>@Model.Justification</pre>
+</div>
+
+<hr />
+
+<h4>Approval History</h4>
+@if (Model.Decisions?.Any() == true)
+{
+    <table class="table table-bordered">
+        <thead>
+            <tr>
+                <th>Stage</th>
+                <th>Decision</th>
+                <th>By</th>
+                <th>At</th>
+                <th>Notes</th>
+            </tr>
+        </thead>
+        <tbody>
+        @foreach(var d in Model.Decisions.OrderBy(d=>d.DecidedAt))
+        {
+            <tr>
+                <td>@d.Stage</td>
+                <td>@d.Decision</td>
+                <td>@d.DecidedBySam</td>
+                <td>@d.DecidedAt?.ToString("yyyy-MM-dd HH:mm")</td>
+                <td>@d.Notes</td>
+            </tr>
+        }
+        </tbody>
+    </table>
+}
+else
+{
+    <p>No decisions yet.</p>
+}
+
+<div class="mt-4">
+    <a class="btn btn-secondary" asp-controller="Manager" asp-action="Index">Back to Manager List</a>
+</div>

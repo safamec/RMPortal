@@ -1,0 +1,69 @@
+@model IEnumerable<MediaAccessRequest>
+@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
+
+<h2>Manager Inbox</h2>
+
+@if (TempData["Success"] is string ok && !string.IsNullOrWhiteSpace(ok))
+{
+    <div class="alert alert-success">@ok</div>
+}
+
+@if (!Model.Any())
+{
+    <p>No requests awaiting your action.</p>
+}
+else
+{
+    <table class="table table-striped align-middle">
+        <thead>
+            <tr>
+                <th>Req #</th>
+                <th>Requester</th>
+                <th>Dept</th>
+                <th>Start</th>
+                <th>End</th>
+                <th>Justification</th>
+                <th class="text-end">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+        @foreach (var r in Model)
+        {
+            <tr>
+                <td>@r.RequestNumber</td>
+                <td>@r.Name (@r.LoginName)</td>
+                <td>@r.Department</td>
+                <td>@(r.StartDate?.ToString("yyyy-MM-dd") ?? "-")</td>
+                <td>@(r.EndDate?.ToString("yyyy-MM-dd") ?? "-")</td>
+                <td style="max-width:280px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+                    @r.Justification
+                </td>
+                <td class="text-end text-nowrap">
+                    <form asp-action="Approve" method="post" class="d-inline">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="id" value="@r.Id" />
+                        <button class="btn btn-success btn-sm">Approve</button>
+                    </form>
+
+                    <form asp-action="Reject" method="post" class="d-inline ms-1">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="id" value="@r.Id" />
+                        <input type="hidden" name="notes" value="Rejected by manager." />
+                        <button class="btn btn-danger btn-sm">Reject</button>
+                    </form>
+
+                    <form asp-action="Delay" method="post" class="d-inline ms-1">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="id" value="@r.Id" />
+                        <input type="hidden" name="notes" value="Need more information." />
+                        <button class="btn btn-warning btn-sm">Delay</button>
+                    </form>
+
+                    <a class="btn btn-outline-secondary btn-sm ms-1"
+                       asp-action="Details" asp-route-id="@r.Id">Details</a>
+                </td>
+            </tr>
+        }
+        </tbody>
+    </table>
+}

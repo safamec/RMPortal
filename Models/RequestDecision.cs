@@ -1,11 +1,14 @@
 public class RequestDecision
 {
     public int Id { get; set; }
+
+    // FK + Navigation (BOTH are important)
     public int MediaAccessRequestId { get; set; }
-    public string Stage { get; set; } = ""; // Manager|Security|IT
-    public string Decision { get; set; } = ""; // Approve|Reject|Complete
+    public MediaAccessRequest MediaAccessRequest { get; set; } = null!;
+
+    public string Stage { get; set; } = "";
+    public string Decision { get; set; } = "";
     public string? Notes { get; set; }
     public string DecidedBySam { get; set; } = "";
-    public DateTime DecidedAt { get; set; } = DateTime.UtcNow;
-    public MediaAccessRequest MediaAccessRequest { get; set; } = null!;
+    public DateTime? DecidedAt { get; set; }
 }

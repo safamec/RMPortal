@@ -19,7 +19,7 @@ namespace RMPortal.Services
     {
         private readonly List<FakeUser> _users = new()
         {
-            new FakeUser("alice","Alice Ahmed","alice@local.test","HR","bob",   new[] { "RM_Requesters" }),
+            new FakeUser("safa","safa Ahmed","safaa3568@gmail.com","HR","bob",   new[] { "RM_Requesters" }),
             new FakeUser("bob","Bob Saleh","bob@local.test","HR","carol",       new[] { "RM_LineManagers" }),
             new FakeUser("carol","Carol Omar","carol@local.test","Security","", new[] { "RM_Security" }),
             new FakeUser("dave","Dave Ali","dave@local.test","IT","",           new[] { "RM_ITAdmins" })

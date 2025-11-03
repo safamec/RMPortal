@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
+using RMPortal.Data;
 using RMPortal.Services;
 using RMPortal.Services; // <-- required
 [Area("Approvals")]

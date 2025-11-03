@@ -140,3 +140,4 @@ C:\Users\123\RMPortal\obj\Debug\net8.0\refint\RMPortal.dll
 C:\Users\123\RMPortal\obj\Debug\net8.0\RMPortal.pdb
 C:\Users\123\RMPortal\obj\Debug\net8.0\RMPortal.genruntimeconfig.cache
 C:\Users\123\RMPortal\obj\Debug\net8.0\ref\RMPortal.dll
+C:\Users\123\RMPortal\obj\Debug\net8.0\RMPortal.sourcelink.json

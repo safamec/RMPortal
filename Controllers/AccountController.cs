@@ -3,67 +3,68 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using RMPortal.Services; // <-- required
-// adjust to your namespace
+using RMPortal.Services;
 
-public class AccountController : Controller
+namespace RMPortal.Controllers   // <-- make sure namespace matches your project
 {
-    private readonly IFakeAdService _ad;
-
-    public AccountController(IFakeAdService ad) => _ad = ad;
-
-    // GET /Account/Login?ReturnUrl=/Requests/Create
-    [HttpGet, AllowAnonymous]
-    public IActionResult Login(string? returnUrl = null)
+    public class AccountController : Controller
     {
-        ViewBag.ReturnUrl = returnUrl;
-        var users = _ad.GetAllUsers();   // alice, bob, carol, dave...
-        return View(users);
-    }
+        private readonly IFakeAdService _ad;
 
-    // POST /Account/Login
-    [HttpPost, AllowAnonymous, ValidateAntiForgeryToken]
-    public async Task<IActionResult> Login(string sam, string? returnUrl = null)
-    {
-        var u = _ad.GetUser(sam);
-        if (u is null)
+        public AccountController(IFakeAdService ad) => _ad = ad;
+
+        // GET /Account/Login?returnUrl=/Requests/Create
+        [HttpGet, AllowAnonymous]
+        public IActionResult Login(string? returnUrl = null)
         {
-            ModelState.AddModelError("", "User not found.");
             ViewBag.ReturnUrl = returnUrl;
-            return View(_ad.GetAllUsers());
+            var users = _ad.GetAllUsers();   // alice, bob, carol, dave...
+            return View(users);
         }
 
-        // Build claims
-        var claims = new List<Claim>
+        // POST /Account/Login
+        [HttpPost, AllowAnonymous, ValidateAntiForgeryToken]
+        public async Task<IActionResult> Login(string sam, string? returnUrl = null)
         {
-            new Claim(ClaimTypes.Name, u.DisplayName),
-            new Claim("sam", u.Sam),
-            new Claim(ClaimTypes.Email, u.Email)
-        };
+            var u = _ad.GetUser(sam);
+            if (u is null)
+            {
+                ModelState.AddModelError("", "User not found.");
+                ViewBag.ReturnUrl = returnUrl;
+                return View(_ad.GetAllUsers());
+            }
 
-        // Add role claims from fake AD groups (RM_LineManagers, RM_Security, RM_ITAdmins...)
-        foreach (var g in _ad.GetGroupsForUser(u.Sam))
-            claims.Add(new Claim(ClaimTypes.Role, g));
+            var claims = new List<Claim>
+            {
+                new Claim(ClaimTypes.Name, u.DisplayName),
+                new Claim(ClaimTypes.NameIdentifier, u.Sam),
+                new Claim("sam", u.Sam),
+                new Claim(ClaimTypes.Email, u.Email ?? string.Empty)
+            };
 
-        var identity  = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
-        var principal = new ClaimsPrincipal(identity);
+            // IMPORTANT: add "groups" claims to satisfy policies
+            foreach (var g in _ad.GetGroupsForUser(u.Sam))
+                claims.Add(new Claim("groups", g));
 
-        await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, principal);
+            var identity  = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+            var principal = new ClaimsPrincipal(identity);
 
-        // validate returnUrl is local
-        if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
-            return Redirect(returnUrl);
+            await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, principal);
 
-        return RedirectToAction("Index", "Home");
+            if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
+                return Redirect(returnUrl);
+
+            return RedirectToAction("Index", "Home");
+        }
+
+        [Authorize]
+        public async Task<IActionResult> Logout()
+        {
+            await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+            return RedirectToAction(nameof(Login));
+        }
+
+        [HttpGet, AllowAnonymous]
+        public IActionResult AccessDenied() => View();
     }
-
-    [Authorize]
-    public async Task<IActionResult> Logout()
-    {
-        await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
-        return RedirectToAction(nameof(Login));
-    }
-
-    [HttpGet, AllowAnonymous]
-    public IActionResult AccessDenied() => View();
 }

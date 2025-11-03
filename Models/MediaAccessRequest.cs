@@ -1,7 +1,9 @@
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations.Schema;
 
-public enum RequestStatus { Draft, Submitted, ManagerApproved, SecurityApproved, Rejected, Completed }
+public enum RequestStatus { Draft, Submitted, ManagerApproved, SecurityApproved, Rejected, Completed,
+    OnHold
+}
 
 public class MediaAccessRequest
 {

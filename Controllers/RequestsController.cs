@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
+using RMPortal.Data;
 using RMPortal.Models;   // MediaAccessRequest, RequestDecision, RequestStatus
 using RMPortal.Services; // IFakeAdService, IEmailService
 
@@ -153,6 +154,21 @@ namespace RMPortal.Controllers
 
             // رسالة نجاح والعودة للـ Home
             TempData["Success"] = $"Request {req.RequestNumber} submitted successfully.";
+            // Email confirmation to requester
+if (requester != null && !string.IsNullOrWhiteSpace(requester.Email))
+{
+    var detailsUrl = Url.Action(nameof(Details), "Requests", new { id = req.Id }, Request.Scheme) ?? "";
+    await _email.SendAsync(
+        requester.Email,
+        $"Your request {req.RequestNumber} was submitted successfully ✅",
+        $@"<p>Dear {requester.DisplayName},</p>
+           <p>Your Removable Media Access Request <b>{req.RequestNumber}</b> has been <b>successfully submitted</b>.</p>
+           <p>You can view the status anytime here:</p>
+           <p><a href=""{detailsUrl}"">{detailsUrl}</a></p>
+           <p>Regards,<br/>RMPortal System</p>"
+    );
+}
+
             return RedirectToAction("Index", "Home");
         }
 

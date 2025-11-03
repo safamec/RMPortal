@@ -17,7 +17,7 @@ namespace RMPortal.Migrations
                 {
                     Id = table.Column<int>(type: "INTEGER", nullable: false)
                         .Annotation("Sqlite:Autoincrement", true),
-                    RequestNumber = table.Column<string>(type: "TEXT", nullable: false),
+                    RequestNumber = table.Column<string>(type: "TEXT", nullable: true),
                     Status = table.Column<int>(type: "INTEGER", nullable: false),
                     EmploymentStatus = table.Column<string>(type: "TEXT", nullable: false),
                     Name = table.Column<string>(type: "TEXT", nullable: false),
@@ -55,7 +55,7 @@ namespace RMPortal.Migrations
                     Decision = table.Column<string>(type: "TEXT", nullable: false),
                     Notes = table.Column<string>(type: "TEXT", nullable: true),
                     DecidedBySam = table.Column<string>(type: "TEXT", nullable: false),
-                    DecidedAt = table.Column<DateTime>(type: "TEXT", nullable: false)
+                    DecidedAt = table.Column<DateTime>(type: "TEXT", nullable: true)
                 },
                 constraints: table =>
                 {

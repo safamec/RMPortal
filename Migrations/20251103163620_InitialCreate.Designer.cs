@@ -4,13 +4,14 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
+using RMPortal.Data;
 
 #nullable disable
 
 namespace RMPortal.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20251102171147_InitialCreate")]
+    [Migration("20251103163620_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -74,7 +75,6 @@ namespace RMPortal.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<string>("RequestNumber")
-                        .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.Property<DateTime?>("RequesterSignAt")
@@ -97,7 +97,7 @@ namespace RMPortal.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Requests");
+                    b.ToTable("Requests", (string)null);
                 });
 
             modelBuilder.Entity("RequestDecision", b =>
@@ -106,7 +106,7 @@ namespace RMPortal.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
-                    b.Property<DateTime>("DecidedAt")
+                    b.Property<DateTime?>("DecidedAt")
                         .HasColumnType("TEXT");
 
                     b.Property<string>("DecidedBySam")
@@ -131,7 +131,7 @@ namespace RMPortal.Migrations
 
                     b.HasIndex("MediaAccessRequestId");
 
-                    b.ToTable("RequestDecisions");
+                    b.ToTable("RequestDecisions", (string)null);
                 });
 
             modelBuilder.Entity("RequestDecision", b =>
