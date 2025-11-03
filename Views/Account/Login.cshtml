@@ -1,0 +1,30 @@
+@model IEnumerable<RMPortal.Services.FakeUser> 
+@{
+    ViewData["Title"] = "Sign in";
+    var returnUrl = ViewBag.ReturnUrl as string;
+}
+
+<h2>Sign in (Fake AD)</h2>
+<p>Select a user to simulate AD login.</p>
+
+<form asp-action="Login" method="post">
+    <input type="hidden" name="returnUrl" value="@returnUrl" />
+    <div class="mb-3">
+        <label class="form-label">User</label>
+        <select name="sam" class="form-select">
+            @foreach (var u in Model)
+            {
+                <option value="@u.Sam">@u.DisplayName (@u.Sam) — @string.Join(", ", u.Groups)</option>
+            }
+        </select>
+    </div>
+    <button type="submit" class="btn btn-primary">Sign in</button>
+</form>
+
+@if (!ViewData.ModelState.IsValid)
+{
+    <div class="text-danger mt-3">
+        @foreach (var e in ViewData.ModelState.Values.SelectMany(v => v.Errors))
+        { <div>@e.ErrorMessage</div> }
+    </div>
+}
