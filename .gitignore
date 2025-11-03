@@ -1,0 +1,24 @@
+# .NET build folders
+bin/
+obj/
+
+# Visual Studio / VS Code junk
+.vs/
+*.user
+*.suo
+
+# Logs
+*.log
+
+# Build artifacts
+*.dll
+*.exe
+*.pdb
+
+# Nuget packages
+*.nupkg
+packages/
+
+# Publish output
+publish/
+wwwroot/dist/
