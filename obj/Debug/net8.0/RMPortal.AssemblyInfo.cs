@@ -10,10 +10,11 @@
 using System;
 using System.Reflection;
 
+[assembly: Microsoft.Extensions.Configuration.UserSecrets.UserSecretsIdAttribute("63875553-33b0-4279-9fb1-de4289620385")]
 [assembly: System.Reflection.AssemblyCompanyAttribute("RMPortal")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+dfe2efd77e78d664d9bc6a864d5a0f3238be7ca9")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+5b7178ab65f2c10d3c21056776045c94b5bbf8f4")]
 [assembly: System.Reflection.AssemblyProductAttribute("RMPortal")]
 [assembly: System.Reflection.AssemblyTitleAttribute("RMPortal")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

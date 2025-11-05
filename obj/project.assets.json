@@ -4023,25 +4023,24 @@
     ]
   },
   "packageFolders": {
-    "C:\\Users\\123\\.nuget\\packages\\": {}
+    "C:\\Users\\safa.am\\.nuget\\packages\\": {}
   },
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\123\\RMPortal\\RMPortal.csproj",
+      "projectUniqueName": "C:\\Users\\safa.am\\RMPortal\\RMPortal.csproj",
       "projectName": "RMPortal",
-      "projectPath": "C:\\Users\\123\\RMPortal\\RMPortal.csproj",
-      "packagesPath": "C:\\Users\\123\\.nuget\\packages\\",
-      "outputPath": "C:\\Users\\123\\RMPortal\\obj\\",
+      "projectPath": "C:\\Users\\safa.am\\RMPortal\\RMPortal.csproj",
+      "packagesPath": "C:\\Users\\safa.am\\.nuget\\packages\\",
+      "outputPath": "C:\\Users\\safa.am\\RMPortal\\obj\\",
       "projectStyle": "PackageReference",
       "configFilePaths": [
-        "C:\\Users\\123\\AppData\\Roaming\\NuGet\\NuGet.Config"
+        "C:\\Users\\safa.am\\AppData\\Roaming\\NuGet\\NuGet.Config"
       ],
       "originalTargetFrameworks": [
         "net8.0"
       ],
       "sources": {
-        "C:\\Program Files\\dotnet\\library-packs": {},
         "https://api.nuget.org/v3/index.json": {}
       },
       "frameworks": {
@@ -4103,7 +4102,7 @@
             "privateAssets": "all"
           }
         },
-        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\8.0.413/PortableRuntimeIdentifierGraph.json"
+        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\8.0.415/PortableRuntimeIdentifierGraph.json"
       }
     }
   }

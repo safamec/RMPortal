@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using RMPortal.Data;
 using RMPortal.Models;   // MediaAccessRequest, RequestDecision, RequestStatus
-using RMPortal.Services; // IFakeAdService, IEmailService
+using RMPortal.Services; // IFakeAdService, IEmailService, IWorkflowNotifier
 
 namespace RMPortal.Controllers
 {
@@ -19,13 +19,17 @@ namespace RMPortal.Controllers
         private readonly IEmailService _email;
         private readonly IHubContext<NotificationHub> _hub;
 
+        // NEW: workflow notifier
+        private readonly IWorkflowNotifier _notifier;
+
         public RequestsController(
             AppDbContext db,
             IFakeAdService ad,
             IEmailService email,
-            IHubContext<NotificationHub> hub)
+            IHubContext<NotificationHub> hub,
+            IWorkflowNotifier notifier) // NEW: ctor param
         {
-            _db = db; _ad = ad; _email = email; _hub = hub;
+            _db = db; _ad = ad; _email = email; _hub = hub; _notifier = notifier; // NEW: assign
         }
 
         // GET: /Requests/Create
@@ -119,7 +123,10 @@ namespace RMPortal.Controllers
 
             await _db.SaveChangesAsync();
 
-            // إشعار المدير (اختياري)
+            // NEW: one unified notifier call (replaces requester confirmation emails)
+            await _notifier.RequestSubmittedAsync(req, Url);
+
+            // إشعار المدير (اختياري) — kept as-is
             var managerSam = _ad.GetManagerSam(req.CreatedBySam);
             if (!string.IsNullOrWhiteSpace(managerSam))
             {
@@ -139,36 +146,8 @@ namespace RMPortal.Controllers
                     .SendAsync("toast", $"Req {req.RequestNumber} needs your review.");
             }
 
-            // تأكيد للمستخدم
-            var requester = _ad.GetUser(req.CreatedBySam);
-            if (requester != null && !string.IsNullOrWhiteSpace(requester.Email))
-            {
-                var detailsUrl = Url.Action(nameof(Details), "Requests", new { id = req.Id }, Request.Scheme) ?? "";
-                await _email.SendAsync(
-                    requester.Email,
-                    $"Your request {req.RequestNumber} was submitted",
-                    $@"<p>Dear {requester.DisplayName},</p>
-                       <p>Your request <b>{req.RequestNumber}</b> has been submitted.</p>
-                       <p><a href=""{detailsUrl}"">Track it here</a></p>");
-            }
-
             // رسالة نجاح والعودة للـ Home
             TempData["Success"] = $"Request {req.RequestNumber} submitted successfully.";
-            // Email confirmation to requester
-if (requester != null && !string.IsNullOrWhiteSpace(requester.Email))
-{
-    var detailsUrl = Url.Action(nameof(Details), "Requests", new { id = req.Id }, Request.Scheme) ?? "";
-    await _email.SendAsync(
-        requester.Email,
-        $"Your request {req.RequestNumber} was submitted successfully ✅",
-        $@"<p>Dear {requester.DisplayName},</p>
-           <p>Your Removable Media Access Request <b>{req.RequestNumber}</b> has been <b>successfully submitted</b>.</p>
-           <p>You can view the status anytime here:</p>
-           <p><a href=""{detailsUrl}"">{detailsUrl}</a></p>
-           <p>Regards,<br/>RMPortal System</p>"
-    );
-}
-
             return RedirectToAction("Index", "Home");
         }
 

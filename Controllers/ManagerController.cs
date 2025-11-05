@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using RMPortal.Data;
 using RMPortal.Models;
-using RMPortal.Services;
+using RMPortal.Services; // IFakeAdService, IEmailService, IWorkflowNotifier
 
 [Authorize(Policy = "IsManager")]
 public class ManagerController : Controller
@@ -16,9 +16,12 @@ public class ManagerController : Controller
     private readonly IFakeAdService _ad;
     private readonly IEmailService _email;
 
-    public ManagerController(AppDbContext db, IFakeAdService ad, IEmailService email)
+    // NEW: notifier
+    private readonly IWorkflowNotifier _notifier;
+
+    public ManagerController(AppDbContext db, IFakeAdService ad, IEmailService email, IWorkflowNotifier notifier)
     {
-        _db = db; _ad = ad; _email = email;
+        _db = db; _ad = ad; _email = email; _notifier = notifier; // NEW
     }
 
     private string CurrentSam => User.FindFirstValue("sam") ?? string.Empty;
@@ -68,7 +71,10 @@ public class ManagerController : Controller
 
         await _db.SaveChangesAsync();
 
-        // إشعار الأمن (Security) + المرسل
+        // NEW: send workflow notification (manager approved)
+        await _notifier.ManagerApprovedAsync(req, Url);
+
+        // إشعار الأمن (Security) + المرسل (تبقى كما هي)
         await NotifySecurity(req);
         await NotifyRequester(req, "approved by your Line Manager and forwarded to Security.");
 
@@ -97,11 +103,15 @@ public class ManagerController : Controller
 
         await _db.SaveChangesAsync();
 
+        // NEW: send workflow notification (rejected)
+        await _notifier.RejectedAsync(req, rejectedBy: "Line Manager", notes, Url);
+
+        // إشعار المرسل (تبقى كما هي)
         await NotifyRequester(req, "rejected by your Line Manager.");
         return RedirectToAction(nameof(Index));
     }
 
-    // Delay → OnHold + إيميل للطالب يخبره بالسبب (ويقدر لاحقاً يعدل ويعيد إرسال — لو أردتِ لاحقاً)
+    // Delay → OnHold + إيميل للطالب يخبره بالسبب (ليست رسالة رفض)
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Delay(int id, string? notes)
@@ -123,7 +133,7 @@ public class ManagerController : Controller
 
         await _db.SaveChangesAsync();
 
-        // إيميل للطالب بسبب التأجيل
+        // إيميل للطالب بسبب التأجيل (NOT a rejection email)
         await NotifyRequester(req, "put on hold by your Line Manager. Notes: " + (notes ?? "(no notes)"));
         return RedirectToAction(nameof(Index));
     }

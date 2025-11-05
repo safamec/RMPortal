@@ -1,20 +1,20 @@
-namespace RMPortal.Services;
-
-public sealed class EmailOptions
+namespace RMPortal.Services
 {
-    // Common
-    public string From { get; set; } = "no-reply@local.test";
+    public sealed class EmailOptions
+    {
+        public string Host { get; set; } = "";
+        public int Port { get; set; } = 587;
+        public bool EnableSsl { get; set; } = true;
 
-    // Mode switch
-    public bool UsePickupFolder { get; set; } = true;
+        // Gmail App Password setup
+        public string UserName { get; set; } = "";
+        public string Password { get; set; } = "";
 
-    // Pickup (dev)
-    public string PickupFolder { get; set; } = @"C:\temp\maildrop";
+        public string FromAddress { get; set; } = "";
+        public string FromName { get; set; } = "RMPortal";
 
-    // SMTP (prod)
-    public string Host { get; set; } = "smtp.example.com";
-    public int Port { get; set; } = 587;
-    public bool EnableSsl { get; set; } = true;
-    public string? User { get; set; }
-    public string? Password { get; set; }
+        // Optional pickup folder for local dev
+        public bool UsePickupFolder { get; set; } = false;
+        public string PickupFolder { get; set; } = "C:\\maildrop";
+    }
 }
