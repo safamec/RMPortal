@@ -1,24 +1,51 @@
-# .NET build folders
+# Build Folders
 bin/
 obj/
+out/
 
-# Visual Studio / VS Code junk
-.vs/
+# User-specific files
 *.user
 *.suo
+*.userosscache
+*.sln.docstates
 
-# Logs
-*.log
+# Rider
+.idea/
+*.iml
 
-# Build artifacts
+# VS Code
+.vscode/
+
+# NuGet
+*.nupkg
+*.snupkg
+*.nuspec
+packages/
+project.lock.json
+project.fragment.lock.json
+artifacts/
+
+# ASP.NET / .NET
 *.dll
 *.exe
 *.pdb
+*.cache
+*.log
+*.vspscc
+*.dbmdl
+*.dbproj.schemaview
+*.publishsettings
+*.pubxml
+*.publishproj
 
-# Nuget packages
-*.nupkg
-packages/
+# Dotnet temporary files
+*.dotCover
+*.dotCover.ic
+*.dotCover.json
+TestResults/
+*.vsix
+*.vsixmanifest
 
-# Publish output
-publish/
-wwwroot/dist/
+# Others
+*.DS_Store
+Thumbs.db
