@@ -1,6 +1,6 @@
 {
   "Version": 1,
-  "Hash": "IXi74TUEF61/XtjhpeLRN37MNo4OOYO0fEYwvDRpRUE=",
+  "Hash": "Vj8ma08KE4svqkF8flVBrFZgVfqmVYR4sLusK2plet8=",
   "Source": "RMPortal",
   "BasePath": "_content/RMPortal",
   "Mode": "Default",
@@ -91,6 +91,25 @@
       "CopyToOutputDirectory": "Never",
       "CopyToPublishDirectory": "PreserveNewest",
       "OriginalItemSpec": "wwwroot\\favicon.ico"
+    },
+    {
+      "Identity": "C:\\Users\\safa.am\\RMPortal\\wwwroot\\images\\background.png",
+      "SourceId": "RMPortal",
+      "SourceType": "Discovered",
+      "ContentRoot": "C:\\Users\\safa.am\\RMPortal\\wwwroot\\",
+      "BasePath": "_content/RMPortal",
+      "RelativePath": "images/background.png",
+      "AssetKind": "All",
+      "AssetMode": "All",
+      "AssetRole": "Primary",
+      "AssetMergeBehavior": "PreferTarget",
+      "AssetMergeSource": "",
+      "RelatedAsset": "",
+      "AssetTraitName": "",
+      "AssetTraitValue": "",
+      "CopyToOutputDirectory": "Never",
+      "CopyToPublishDirectory": "PreserveNewest",
+      "OriginalItemSpec": "wwwroot\\images\\background.png"
     },
     {
       "Identity": "C:\\Users\\safa.am\\RMPortal\\wwwroot\\js\\site.js",

@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("RMPortal")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+5b7178ab65f2c10d3c21056776045c94b5bbf8f4")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+32759f14c6f70a9d4bd1272e3dd2e7b212830984")]
 [assembly: System.Reflection.AssemblyProductAttribute("RMPortal")]
 [assembly: System.Reflection.AssemblyTitleAttribute("RMPortal")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

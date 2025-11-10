@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using RMPortal.Services;
 
-namespace RMPortal.Controllers   // <-- make sure namespace matches your project
+namespace RMPortal.Controllers
 {
     public class AccountController : Controller
     {
@@ -18,7 +18,7 @@ namespace RMPortal.Controllers   // <-- make sure namespace matches your project
         public IActionResult Login(string? returnUrl = null)
         {
             ViewBag.ReturnUrl = returnUrl;
-            var users = _ad.GetAllUsers();   // alice, bob, carol, dave...
+            var users = _ad.GetAllUsers();   // alice, bob, carol, dave, safa...
             return View(users);
         }
 
@@ -34,6 +34,7 @@ namespace RMPortal.Controllers   // <-- make sure namespace matches your project
                 return View(_ad.GetAllUsers());
             }
 
+            // ===== Build claims =====
             var claims = new List<Claim>
             {
                 new Claim(ClaimTypes.Name, u.DisplayName),
@@ -42,18 +43,47 @@ namespace RMPortal.Controllers   // <-- make sure namespace matches your project
                 new Claim(ClaimTypes.Email, u.Email ?? string.Empty)
             };
 
-            // IMPORTANT: add "groups" claims to satisfy policies
             foreach (var g in _ad.GetGroupsForUser(u.Sam))
-                claims.Add(new Claim("groups", g));
+                claims.Add(new Claim("groups", g));  // لسياسات IsManager/IsSecurity/IsIT
 
             var identity  = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
             var principal = new ClaimsPrincipal(identity);
 
-            await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, principal);
+            await HttpContext.SignInAsync(
+                CookieAuthenticationDefaults.AuthenticationScheme,
+                principal,
+                new AuthenticationProperties { IsPersistent = true });
 
+            // ===== Hard redirects by user (override any returnUrl) =====
+            var lowerSam = (u.Sam ?? "").Trim().ToLowerInvariant();
+
+            if (lowerSam == "safa" || lowerSam == "safaa" || lowerSam == "safa.ahmed")
+            {
+                // Safaa → Requests/Create
+                return RedirectToAction("Create", "Requests");
+            }
+
+            if (lowerSam == "bob")
+            {
+                // Bob → /Manager (Index)
+                return RedirectToAction("Index", "Manager");
+            }
+
+            // ===== Otherwise: honor returnUrl if local =====
             if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
                 return Redirect(returnUrl);
 
+            // ===== Optional: role-based default landing =====
+            if (User.HasClaim("groups", "RM_LineManagers"))
+                return RedirectToAction("Index", "Manager");
+
+            if (User.HasClaim("groups", "RM_Security"))
+                return RedirectToAction("Index", "Security");
+
+            if (User.HasClaim("groups", "RM_ITAdmins"))
+                return RedirectToAction("Index", "IT");
+
+            // Fallback
             return RedirectToAction("Index", "Home");
         }
 
