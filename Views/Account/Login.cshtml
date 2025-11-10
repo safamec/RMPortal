@@ -9,8 +9,7 @@
 <!-- المحتوى الرئيسي -->
 <div class="login-container">
     <div class="text-section">
-        <h1>صلاحيات</h1>
-        <h2>اختر المستخدم للدخول</h2>
+        <h2>choose user to Log In</h2>
 
         <form asp-action="Login" method="post">
             @Html.AntiForgeryToken()
@@ -35,10 +34,10 @@
     <div class="image-section">
         <!-- laptop illustration -->
         <svg class="laptop-illustration" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-            <rect x="8" y="10" width="48" height="32" rx="2" ry="2" fill="#f5f5f5" stroke="#435585" stroke-width="2"/>
+            <rect x="8" y="10" width="48" height="32" rx="2" ry="2" fill="#f5f5f5" stroke="#3cb1a7" stroke-width="2"/>
             <rect x="12" y="14" width="40" height="24" fill="#ffffff"/>
-            <rect x="4" y="42" width="56" height="6" fill="#435585" rx="1" ry="1"/>
-            <rect x="10" y="48" width="44" height="4" fill="#00a6a6" rx="1" ry="1"/>
+            <rect x="4" y="42" width="56" height="6" fill="#326d68" rx="1" ry="1"/>
+            <rect x="10" y="48" width="44" height="4" fill="#3cb1a7" rx="1" ry="1"/>
         </svg>
     </div>
 </div>
@@ -49,7 +48,7 @@
     body {
         margin: 0;
         font-family: 'Cairo', sans-serif;
-        background: linear-gradient(135deg, #e7f7f5 0%, #c5ebe5 100%);
+        background: linear-gradient(135deg, #f3fffe 0%, #ebf9f7 100%);
     }
 
     .login-container {
@@ -72,7 +71,7 @@
 
     .text-section h1 {
         font-size: 40px;
-        color: #00a6a6;
+        color: #2f8a83;
         margin: 0;
     }
 
@@ -96,7 +95,7 @@
 
     button {
         margin-top: 20px;
-        background-color: #435585;
+        background-color: #308e86;
         color: white;
         border: none;
         cursor: pointer;
@@ -104,7 +103,7 @@
     }
 
     button:hover {
-        background-color: #324266;
+        background-color: #295b57;
     }
 
     .image-section {

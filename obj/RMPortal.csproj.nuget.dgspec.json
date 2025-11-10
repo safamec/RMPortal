@@ -1,20 +1,20 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\safa.am\\RMPortal\\RMPortal.csproj": {}
+    "C:\\Users\\tasnim.ks\\Desktop\\RMPortal\\RMPortal.csproj": {}
   },
   "projects": {
-    "C:\\Users\\safa.am\\RMPortal\\RMPortal.csproj": {
+    "C:\\Users\\tasnim.ks\\Desktop\\RMPortal\\RMPortal.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\safa.am\\RMPortal\\RMPortal.csproj",
+        "projectUniqueName": "C:\\Users\\tasnim.ks\\Desktop\\RMPortal\\RMPortal.csproj",
         "projectName": "RMPortal",
-        "projectPath": "C:\\Users\\safa.am\\RMPortal\\RMPortal.csproj",
-        "packagesPath": "C:\\Users\\safa.am\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\safa.am\\RMPortal\\obj\\",
+        "projectPath": "C:\\Users\\tasnim.ks\\Desktop\\RMPortal\\RMPortal.csproj",
+        "packagesPath": "C:\\Users\\tasnim.ks\\.nuget\\packages\\",
+        "outputPath": "C:\\Users\\tasnim.ks\\Desktop\\RMPortal\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
-          "C:\\Users\\safa.am\\AppData\\Roaming\\NuGet\\NuGet.Config"
+          "C:\\Users\\tasnim.ks\\AppData\\Roaming\\NuGet\\NuGet.Config"
         ],
         "originalTargetFrameworks": [
           "net8.0"
