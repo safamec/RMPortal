@@ -1,69 +1,66 @@
-using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using RMPortal.Data;
-using RMPortal.Services;
-using RMPortal.Services; // <-- required
-[Area("Approvals")]
-[Authorize(Roles="RM_ITAdmins")]
-public class ITController : Controller
+using RMPortal.Models;
+using System;
+using System.Linq;
+using System.Threading.Tasks;
+
+namespace RMPortal.Areas.Approvals.Controllers
 {
-    private readonly AppDbContext _db;
-    private readonly IFakeAdService _ad;
-    private readonly IEmailService _email;
-
-    public ITController(AppDbContext db, IFakeAdService ad, IEmailService email)
-    { _db = db; _ad = ad; _email = email; }
-
-    public async Task<IActionResult> Index()
-        => View(await _db.Requests.Where(r => r.Status == RequestStatus.SecurityApproved).ToListAsync());
-
-    [HttpPost]
-    public async Task<IActionResult> Complete(int id, string? actionTaken, string? crq)
+    [Area("Approvals")]
+    [Authorize(Roles = "RM_ITAdmins")]
+    public class ITController : Controller
     {
-        var req = await _db.Requests.FindAsync(id);
-        if (req is null || req.Status != RequestStatus.SecurityApproved) return BadRequest();
+        private readonly AppDbContext _context;
 
-        req.Status = RequestStatus.Completed;
-        req.ITSignAt = DateTime.UtcNow;
-        _db.RequestDecisions.Add(new RequestDecision {
-            MediaAccessRequestId = id, Stage = "IT", Decision = "Complete",
-            Notes = $"Action: {actionTaken ?? "-"}, CRQ: {crq ?? "-"}",
-            DecidedBySam = User.FindFirstValue("sam")
-        });
-        await _db.SaveChangesAsync();
+        public ITController(AppDbContext context)
+        {
+            _context = context;
+        }
 
-        // Final email to requester (and optionally manager + security)
-        var user = _ad.GetUser(req.CreatedBySam);
-        if (user is not null)
-            await _email.SendAsync(user.Email,
-                $"Completed: {req.RequestNumber}",
-                $"<p>Your request is <b>Completed</b>. Action: {System.Net.WebUtility.HtmlEncode(actionTaken ?? "-")}</p>");
+        public async Task<IActionResult> Index()
+        {
+            // إحصائيات خاصة بقسم الـ IT فقط
+            var pendingCount = await _context.Requests
+                .CountAsync(r => r.Status == RequestStatus.ManagerApproved);
 
-        return RedirectToAction(nameof(Index));
-    }
+            var completedCount = await _context.Requests
+                .CountAsync(r => r.Status == RequestStatus.Completed);
 
-    [HttpPost]
-    public async Task<IActionResult> Reject(int id, string? notes)
-    {
-        var req = await _db.Requests.FindAsync(id);
-        if (req is null || req.Status != RequestStatus.SecurityApproved) return BadRequest();
+            var rejectedCount = await _context.Requests
+                .CountAsync(r => r.Status == RequestStatus.Rejected);
 
-        req.Status = RequestStatus.Rejected;
-        _db.RequestDecisions.Add(new RequestDecision {
-            MediaAccessRequestId = id, Stage = "IT", Decision = "Reject",
-            Notes = notes, DecidedBySam = User.FindFirstValue("sam")
-        });
-        await _db.SaveChangesAsync();
+            // أحدث الطلبات التي تخص الـ IT
+            var recent = await _context.Requests
+                .Where(r => r.Status == RequestStatus.ManagerApproved
+                         || r.Status == RequestStatus.Completed
+                         || r.Status == RequestStatus.Rejected)
+                .OrderByDescending(r => r.CreatedAt)
+                .Take(10)
+                .ToListAsync();
 
-        var user = _ad.GetUser(req.CreatedBySam);
-        if (user is not null)
-            await _email.SendAsync(user.Email,
-                $"Request {req.RequestNumber} was Rejected by IT",
-                $"<p>Reason: {System.Net.WebUtility.HtmlEncode(notes ?? "")}</p>");
+            // عدد الطلبات لكل قسم
+            var byDept = await _context.Requests
+                .Where(r => r.Department != null)
+                .GroupBy(r => r.Department!)
+                .Select(g => new { Department = g.Key, Count = g.Count() })
+                .ToListAsync();
 
-        return RedirectToAction(nameof(Index));
+            var model = new DashboardViewModel
+            {
+                PendingCount = pendingCount,
+                ApprovedCount = completedCount,
+                ExpiredCount = rejectedCount, // نستخدمها فقط للعرض كعدد الطلبات المرفوضة
+                RecentRequests = recent,
+                RequestsByDepartment = byDept
+                    .Select(x => (x.Department ?? "غير محدد", x.Count))
+                    .ToList(),
+                RejectedByDepartment = new()
+            };
+
+            return View(model);
+        }
     }
 }

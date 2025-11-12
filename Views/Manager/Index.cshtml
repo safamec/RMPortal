@@ -42,28 +42,21 @@ else
                     <td>@(r.EndDate?.ToString("yyyy-MM-dd") ?? "-")</td>
                     <td class="truncate">@r.Justification</td>
                     <td class="text-end text-nowrap">
-                        <form asp-action="Approve" method="post" class="d-inline">
+                        <form asp-controller="Manager" asp-action="Approve" method="post" class="d-inline">
                             @Html.AntiForgeryToken()
                             <input type="hidden" name="id" value="@r.Id" />
                             <button class="btn btn-approve btn-sm rounded-pill px-3">Approve</button>
                         </form>
 
-                        <form asp-action="Reject" method="post" class="d-inline ms-1">
+                        <form asp-controller="Manager" asp-action="Reject" method="post" class="d-inline ms-1">
                             @Html.AntiForgeryToken()
                             <input type="hidden" name="id" value="@r.Id" />
                             <input type="hidden" name="notes" value="Rejected by manager." />
                             <button class="btn btn-reject btn-sm rounded-pill px-3">Reject</button>
                         </form>
 
-                        <form asp-action="Delay" method="post" class="d-inline ms-1">
-                            @Html.AntiForgeryToken()
-                            <input type="hidden" name="id" value="@r.Id" />
-                            <input type="hidden" name="notes" value="Need more information." />
-                            <button class="btn btn-delay btn-sm rounded-pill px-3">Delay</button>
-                        </form>
-
                         <a class="btn btn-outline-secondary btn-sm rounded-pill px-3 ms-1"
-                           asp-action="Details" asp-route-id="@r.Id">Details</a>
+                           asp-controller="Manager" asp-action="Details" asp-route-id="@r.Id">Details</a>
                     </td>
                 </tr>
             }
@@ -143,17 +136,6 @@ else
 
     .btn-reject:hover {
         background-color: #bb2d3b;
-    }
-
-    .btn-delay {
-        background-color: #ffc107;
-        color: #333;
-        border: none;
-        transition: 0.2s;
-    }
-
-    .btn-delay:hover {
-        background-color: #e0a800;
     }
 
     .btn-outline-secondary {

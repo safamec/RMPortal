@@ -15,23 +15,22 @@ public class ManagerController : Controller
     private readonly AppDbContext _db;
     private readonly IFakeAdService _ad;
     private readonly IEmailService _email;
-
-    // NEW: notifier
     private readonly IWorkflowNotifier _notifier;
 
     public ManagerController(AppDbContext db, IFakeAdService ad, IEmailService email, IWorkflowNotifier notifier)
     {
-        _db = db; _ad = ad; _email = email; _notifier = notifier; // NEW
+        _db = db;
+        _ad = ad;
+        _email = email;
+        _notifier = notifier;
     }
 
     private string CurrentSam => User.FindFirstValue("sam") ?? string.Empty;
 
-    // قائمة الطلبات بانتظار المدير
+    // الطلبات بانتظار المدير
     [HttpGet]
     public async Task<IActionResult> Index()
     {
-        // الأبسط الآن: كل Submitted تظهر لكل مدير
-        // لاحقًا نقدر نحفظ ManagerSam في الطلب ونفلتر عليه
         var items = await _db.Requests
             .Where(r => r.Status == RequestStatus.Submitted)
             .OrderByDescending(r => r.CreatedAt)
@@ -40,15 +39,19 @@ public class ManagerController : Controller
         return View(items);
     }
 
-    // عرض التفاصيل (اختياري – نقدر نعيد استخدام View Details الموجودة)
+    // التفاصيل
     [HttpGet]
     public async Task<IActionResult> Details(int id)
     {
-        var req = await _db.Requests.Include(r => r.Decisions).FirstOrDefaultAsync(r => r.Id == id);
+        var req = await _db.Requests
+            .Include(r => r.Decisions)
+            .FirstOrDefaultAsync(r => r.Id == id);
+
         if (req == null) return NotFound();
-        return View(req); // أنشئ View أو أعيدي استخدام Requests/Details
+        return View(req);
     }
 
+    // ======= APPROVE: إلى قسم IT مباشرة + بريد للمستخدم عبر Notifier فقط =======
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Approve(int id, string? notes)
@@ -56,6 +59,7 @@ public class ManagerController : Controller
         var req = await _db.Requests.FindAsync(id);
         if (req == null || req.Status != RequestStatus.Submitted) return BadRequest();
 
+        // تغيير الحالة إلى ManagerApproved
         req.Status = RequestStatus.ManagerApproved;
         req.ManagerSignAt = DateTime.UtcNow;
 
@@ -71,16 +75,16 @@ public class ManagerController : Controller
 
         await _db.SaveChangesAsync();
 
-        // NEW: send workflow notification (manager approved)
+        // بريد المستخدم (موحّد عبر الـ Notifier فقط)
         await _notifier.ManagerApprovedAsync(req, Url);
 
-        // إشعار الأمن (Security) + المرسل (تبقى كما هي)
-        await NotifySecurity(req);
-        await NotifyRequester(req, "approved by your Line Manager and forwarded to Security.");
+        // إشعار IT
+        await NotifyIT(req);
 
         return RedirectToAction(nameof(Index));
     }
 
+    // ======= REJECT: بريد رفض للمستخدم عبر Notifier فقط =======
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Reject(int id, string? notes)
@@ -103,15 +107,13 @@ public class ManagerController : Controller
 
         await _db.SaveChangesAsync();
 
-        // NEW: send workflow notification (rejected)
+        // بريد المستخدم (موحّد عبر الـ Notifier فقط)
         await _notifier.RejectedAsync(req, rejectedBy: "Line Manager", notes, Url);
 
-        // إشعار المرسل (تبقى كما هي)
-        await NotifyRequester(req, "rejected by your Line Manager.");
         return RedirectToAction(nameof(Index));
     }
 
-    // Delay → OnHold + إيميل للطالب يخبره بالسبب (ليست رسالة رفض)
+    // ======= DELAY: تعليق الطلب مؤقتًا (يبقى بريد بسيط للمستخدم هنا) =======
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Delay(int id, string? notes)
@@ -133,27 +135,30 @@ public class ManagerController : Controller
 
         await _db.SaveChangesAsync();
 
-        // إيميل للطالب بسبب التأجيل (NOT a rejection email)
-        await NotifyRequester(req, "put on hold by your Line Manager. Notes: " + (notes ?? "(no notes)"));
+        // بريد توضيحي للمستخدم (هذا الحدث فقط يبقى هنا)
+        await NotifyRequester(req, "put on hold by your Line Manager. This is not a rejection. Notes: " + (notes ?? "(no notes)"));
         return RedirectToAction(nameof(Index));
     }
 
-    private async Task NotifySecurity(MediaAccessRequest req)
+    // ===== Helpers =====
+
+    // إشعار IT (RM_ITAdmins)
+    private async Task NotifyIT(MediaAccessRequest req)
     {
-        // كل أعضاء مجموعة الأمن
-        var secUsers = _ad.GetUsersInGroup("RM_Security");
-        foreach (var u in secUsers.Where(u => !string.IsNullOrWhiteSpace(u.Email)))
+        var itUsers = _ad.GetUsersInGroup("RM_ITAdmins");
+        foreach (var u in itUsers.Where(u => !string.IsNullOrWhiteSpace(u.Email)))
         {
-            var url = Url.Action("Index", "Security", null, Request.Scheme) ?? "";
+            var url = Url.Action("Index", "IT", new { area = "Approvals" }, Request.Scheme) ?? "";
             await _email.SendAsync(
                 u.Email,
-                $"Request {req.RequestNumber} awaiting Security review",
+                $"Request {req.RequestNumber} awaiting IT action",
                 $@"<p>Dear {u.DisplayName},</p>
-                   <p>Request <b>{req.RequestNumber}</b> is ready for your review.</p>
-                   <p><a href=""{url}"">Open Security Inbox</a></p>");
+                   <p>Request <b>{req.RequestNumber}</b> has been approved by Line Manager and is ready for IT action.</p>
+                   <p><a href=""{url}"">Open IT Inbox</a></p>");
         }
     }
 
+    // بريد بسيط للمستخدم (يُستخدم حاليًا في Delay فقط)
     private async Task NotifyRequester(MediaAccessRequest req, string message)
     {
         var requester = _ad.GetUser(req.CreatedBySam);
@@ -164,7 +169,7 @@ public class ManagerController : Controller
                 requester.Email,
                 $"Update on your request {req.RequestNumber}",
                 $@"<p>Dear {requester.DisplayName},</p>
-                   <p>Your request <b>{req.RequestNumber}</b> was {message}</p>
+                   <p>Your request <b>{req.RequestNumber}</b> was {System.Net.WebUtility.HtmlEncode(message)}</p>
                    <p><a href=""{detailsUrl}"">View Details</a></p>");
         }
     }

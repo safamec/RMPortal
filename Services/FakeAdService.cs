@@ -21,7 +21,6 @@ namespace RMPortal.Services
         {
             new FakeUser("safa","safa Ahmed","safaa3568@gmail.com","HR","bob",   new[] { "RM_Requesters" }),
             new FakeUser("bob","Bob Saleh","bob@local.test","HR","carol",       new[] { "RM_LineManagers" }),
-            new FakeUser("carol","Carol Omar","carol@local.test","Security","", new[] { "RM_Security" }),
             new FakeUser("dave","Dave Ali","dave@local.test","IT","",           new[] { "RM_ITAdmins" })
         };
 

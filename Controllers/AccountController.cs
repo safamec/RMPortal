@@ -18,7 +18,7 @@ namespace RMPortal.Controllers
         public IActionResult Login(string? returnUrl = null)
         {
             ViewBag.ReturnUrl = returnUrl;
-            var users = _ad.GetAllUsers();   // alice, bob, carol, dave, safa...
+            var users = _ad.GetAllUsers();   // alice, bob, dave, safa...
             return View(users);
         }
 
@@ -44,9 +44,9 @@ namespace RMPortal.Controllers
             };
 
             foreach (var g in _ad.GetGroupsForUser(u.Sam))
-                claims.Add(new Claim("groups", g));  // لسياسات IsManager/IsSecurity/IsIT
+                claims.Add(new Claim("groups", g));  // لسياسات IsManager/IsIT
 
-            var identity  = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+            var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
             var principal = new ClaimsPrincipal(identity);
 
             await HttpContext.SignInAsync(
@@ -65,26 +65,29 @@ namespace RMPortal.Controllers
 
             if (lowerSam == "bob")
             {
-                // Bob → /Manager (Index)
+                // Bob → Manager dashboard
                 return RedirectToAction("Index", "Manager");
+            }
+
+            if (lowerSam == "dave" || lowerSam == "dava")
+            {
+                // Dave → Dashboard
+                return RedirectToAction("Index", "Dashboard");
             }
 
             // ===== Otherwise: honor returnUrl if local =====
             if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
                 return Redirect(returnUrl);
 
-            // ===== Optional: role-based default landing =====
-            if (User.HasClaim("groups", "RM_LineManagers"))
+            // ===== Role-based default landing =====
+            if (principal.HasClaim("groups", "RM_LineManagers"))
                 return RedirectToAction("Index", "Manager");
 
-            if (User.HasClaim("groups", "RM_Security"))
-                return RedirectToAction("Index", "Security");
-
-            if (User.HasClaim("groups", "RM_ITAdmins"))
+            if (principal.HasClaim("groups", "RM_ITAdmins"))
                 return RedirectToAction("Index", "IT");
 
-            // Fallback
-            return RedirectToAction("Index", "Home");
+            // ===== Fallback =====
+            return RedirectToAction("Index", "Dashboard");
         }
 
         [Authorize]

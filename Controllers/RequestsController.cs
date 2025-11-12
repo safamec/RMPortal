@@ -18,8 +18,6 @@ namespace RMPortal.Controllers
         private readonly IFakeAdService _ad;
         private readonly IEmailService _email;
         private readonly IHubContext<NotificationHub> _hub;
-
-        // NEW: workflow notifier
         private readonly IWorkflowNotifier _notifier;
 
         public RequestsController(
@@ -27,9 +25,13 @@ namespace RMPortal.Controllers
             IFakeAdService ad,
             IEmailService email,
             IHubContext<NotificationHub> hub,
-            IWorkflowNotifier notifier) // NEW: ctor param
+            IWorkflowNotifier notifier)
         {
-            _db = db; _ad = ad; _email = email; _hub = hub; _notifier = notifier; // NEW: assign
+            _db = db;
+            _ad = ad;
+            _email = email;
+            _hub = hub;
+            _notifier = notifier;
         }
 
         // GET: /Requests/Create
@@ -44,14 +46,12 @@ namespace RMPortal.Controllers
                 Name       = adUser?.DisplayName ?? "",
                 Department = adUser?.Department,
                 LoginName  = adUser?.Sam ?? sam,
-
-                // إظهار رقم الطلب داخل الفورم
                 RequestNumber = $"RM-{DateTime.UtcNow:yyyyMMddHHmmss}"
             };
             return View(vm);
         }
 
-        // POST: /Requests/Create  (Save أو Submit)
+        // POST: /Requests/Create (Save or Submit)
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(MediaAccessRequest model, string action)
@@ -61,7 +61,6 @@ namespace RMPortal.Controllers
             if (!ModelState.IsValid)
                 return View(model);
 
-            // لو مفقود لأي سبب (Refresh) نولّده
             if (string.IsNullOrWhiteSpace(model.RequestNumber))
                 model.RequestNumber = $"RM-{DateTime.UtcNow:yyyyMMddHHmmss}";
 
@@ -73,16 +72,13 @@ namespace RMPortal.Controllers
 
             if (string.Equals(action, "Submit", StringComparison.OrdinalIgnoreCase))
             {
-                // مرّر قيمة checkbox بشكل صريح
                 return await Submit(model.Id, model.ConfirmDeclaration);
             }
 
-            // Save Draft => Details
             return RedirectToAction(nameof(Details), new { id = model.Id });
         }
 
         // POST: /Requests/Submit/{id}
-        // ملاحظة: نأخذ confirmDeclaration كـ باراميتر لضمان القراءة الصحيحة من الفورم
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Submit(int id, bool confirmDeclaration)
@@ -90,18 +86,16 @@ namespace RMPortal.Controllers
             var req = await _db.Requests.FindAsync(id);
             var sam = GetCurrentSam();
 
-            // يُسمح بالإرسال مرة واحدة فقط: عندما تكون Draft فقط
+            // يُسمح بالإرسال مرة واحدة فقط عندما تكون Draft ومن نفس المستخدِم
             if (req == null || req.CreatedBySam != sam || req.Status != RequestStatus.Draft)
                 return Forbid();
 
-            // checkbox لازم يكون مؤشّر عند الإرسال
             if (!confirmDeclaration)
             {
                 ModelState.AddModelError("", "You must check the declaration before submitting.");
                 return View("Create", req);
             }
 
-            // التواريخ: EndDate مطلوب وأن لا يكون قبل StartDate
             if (!req.EndDate.HasValue || (req.StartDate.HasValue && req.EndDate < req.StartDate))
             {
                 ModelState.AddModelError("", "End Date is required and must be on/after Start Date.");
@@ -123,10 +117,10 @@ namespace RMPortal.Controllers
 
             await _db.SaveChangesAsync();
 
-            // NEW: one unified notifier call (replaces requester confirmation emails)
+            // إشعار موحّد للطالب (بدون أي ذكر لـ Security)
             await _notifier.RequestSubmittedAsync(req, Url);
 
-            // إشعار المدير (اختياري) — kept as-is
+            // إشعار المدير بالبريد + توست لمجموعة المدراء
             var managerSam = _ad.GetManagerSam(req.CreatedBySam);
             if (!string.IsNullOrWhiteSpace(managerSam))
             {
@@ -146,7 +140,6 @@ namespace RMPortal.Controllers
                     .SendAsync("toast", $"Req {req.RequestNumber} needs your review.");
             }
 
-            // رسالة نجاح والعودة للـ Home
             TempData["Success"] = $"Request {req.RequestNumber} submitted successfully.";
             return RedirectToAction("Index", "Home");
         }

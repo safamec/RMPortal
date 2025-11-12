@@ -1,6 +1,8 @@
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc; // for IUrlHelper
-using RMPortal.Models;
+using Microsoft.AspNetCore.Mvc;                 // IUrlHelper
+using Microsoft.Extensions.Logging;            // ILogger<T>
+using RMPortal.Models;                         // MediaAccessRequest
+using RMPortal.Services;                       // IEmailService, IFakeAdService
 
 namespace RMPortal.Services
 {
@@ -11,71 +13,101 @@ namespace RMPortal.Services
         Task RejectedAsync(MediaAccessRequest req, string rejectedBy, string? notes, IUrlHelper url);
     }
 
-    public sealed class WorkflowNotifier : IWorkflowNotifier
+    public class WorkflowNotifier : IWorkflowNotifier
     {
-        private readonly IFakeAdService _ad;
         private readonly IEmailService _email;
+        private readonly IFakeAdService _ad;
+        private readonly ILogger<WorkflowNotifier> _log;
 
-        public WorkflowNotifier(IFakeAdService ad, IEmailService email)
+        public WorkflowNotifier(IEmailService email, IFakeAdService ad, ILogger<WorkflowNotifier> log)
         {
-            _ad = ad; _email = email;
+            _email = email;
+            _ad = ad;
+            _log = log;
         }
 
         public async Task RequestSubmittedAsync(MediaAccessRequest req, IUrlHelper url)
         {
-            var requester = _ad.GetUser(req.CreatedBySam);
-            if (requester == null || string.IsNullOrWhiteSpace(requester.Email)) return;
+            var u = _ad.GetUser(req.CreatedBySam);
+            if (string.IsNullOrWhiteSpace(u?.Email))
+            {
+                _log.LogWarning("Requester has no email for {Req}", req.RequestNumber);
+                return;
+            }
 
-            var detailsUrl = url.Action("Details", "Requests",
-                new { id = req.Id }, protocol: "http") ?? "";
+            var link = url.Action("Details", "Requests",
+                                  new { id = req.Id },
+                                  url.ActionContext.HttpContext.Request.Scheme) ?? "";
 
-            await _email.SendAsync(
-                to: requester.Email,
-                subject: $"Request {req.RequestNumber} submitted successfully",
+            var res = await _email.SendAsync(
+                to: u.Email,
+                subject: $"Your request {req.RequestNumber} was submitted",
                 htmlBody: $@"
-<p>Dear {requester.DisplayName},</p>
-<p>Your Removable Media Access request <b>{req.RequestNumber}</b> has been <b>submitted</b>.</p>
-<p>You can track it here: <a href=""{detailsUrl}"">{detailsUrl}</a></p>"
+<p>Dear {u.DisplayName},</p>
+<p>Your request <b>{req.RequestNumber}</b> has been <b>submitted</b>.</p>
+<p><a href=""{link}"">Track it here</a></p>"
             );
+
+            if (!res.Succeeded)
+                _log.LogError("Submit email failed for {Req}: {Err}", req.RequestNumber, res.Error);
         }
 
         public async Task ManagerApprovedAsync(MediaAccessRequest req, IUrlHelper url)
         {
-            var requester = _ad.GetUser(req.CreatedBySam);
-            if (requester == null || string.IsNullOrWhiteSpace(requester.Email)) return;
+            var u = _ad.GetUser(req.CreatedBySam);
+            if (string.IsNullOrWhiteSpace(u?.Email))
+            {
+                _log.LogWarning("Requester has no email for {Req} (approved)", req.RequestNumber);
+                return;
+            }
 
-            var detailsUrl = url.Action("Details", "Requests",
-                new { id = req.Id }, protocol: "http") ?? "";
+            var link = url.Action("Details", "Requests",
+                                  new { id = req.Id },
+                                  url.ActionContext.HttpContext.Request.Scheme) ?? "";
 
-            await _email.SendAsync(
-                to: requester.Email,
+            // ✅ لا Security هنا، فقط إشعار المستخدم
+            var res = await _email.SendAsync(
+                to: u.Email,
                 subject: $"Update: Request {req.RequestNumber} approved by Manager",
                 htmlBody: $@"
-<p>Dear {requester.DisplayName},</p>
-<p>Your request <b>{req.RequestNumber}</b> was <b>approved by your Line Manager</b> and forwarded to Security.</p>
-<p>Track it here: <a href=""{detailsUrl}"">{detailsUrl}</a></p>"
+<p>Dear {u.DisplayName},</p>
+<p>Your request <b>{req.RequestNumber}</b> was <b>approved by your Line Manager</b> and forwarded to <b>IT Department</b> for action.</p>
+<p><a href=""{link}"">View Details</a></p>"
             );
+
+            if (!res.Succeeded)
+                _log.LogError("Approve (requester) email failed for {Req}: {Err}", req.RequestNumber, res.Error);
         }
 
         public async Task RejectedAsync(MediaAccessRequest req, string rejectedBy, string? notes, IUrlHelper url)
         {
-            var requester = _ad.GetUser(req.CreatedBySam);
-            if (requester == null || string.IsNullOrWhiteSpace(requester.Email)) return;
+            var u = _ad.GetUser(req.CreatedBySam);
+            if (string.IsNullOrWhiteSpace(u?.Email))
+            {
+                _log.LogWarning("Requester has no email for {Req} (rejected)", req.RequestNumber);
+                return;
+            }
 
-            var detailsUrl = url.Action("Details", "Requests",
-                new { id = req.Id }, protocol: "http") ?? "";
+            var link = url.Action("Details", "Requests",
+                                  new { id = req.Id },
+                                  url.ActionContext.HttpContext.Request.Scheme) ?? "";
 
-            var notesHtml = string.IsNullOrWhiteSpace(notes) ? "" : $"<p><b>Notes:</b> {System.Net.WebUtility.HtmlEncode(notes)}</p>";
+            var notesHtml = string.IsNullOrWhiteSpace(notes)
+                ? "<p><b>Notes:</b> (no notes)</p>"
+                : $"<p><b>Notes:</b> {System.Net.WebUtility.HtmlEncode(notes)}</p>";
 
-            await _email.SendAsync(
-                to: requester.Email,
-                subject: $"Update: Request {req.RequestNumber} was rejected",
+            var res = await _email.SendAsync(
+                to: u.Email,
+                subject: $"Request {req.RequestNumber} was rejected",
                 htmlBody: $@"
-<p>Dear {requester.DisplayName},</p>
-<p>Your request <b>{req.RequestNumber}</b> was <b>rejected by {rejectedBy}</b>.</p>
+<p>Dear {u.DisplayName},</p>
+<p>Your request <b>{req.RequestNumber}</b> was <b>rejected</b> by {rejectedBy}.</p>
 {notesHtml}
-<p>You can review it here: <a href=""{detailsUrl}"">{detailsUrl}</a></p>"
+<p><a href=""{link}"">View Details</a></p>"
             );
+
+            if (!res.Succeeded)
+                _log.LogError("Reject email failed for {Req}: {Err}", req.RequestNumber, res.Error);
         }
     }
 }
