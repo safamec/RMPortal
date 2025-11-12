@@ -1,0 +1,154 @@
+@model RMPortal.Models.DashboardViewModel
+@{
+    ViewData["Title"] = "لوحة التحكم";
+}
+
+<!-- ✅ رسالة نجاح بعد التمديد -->
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show text-center" role="alert">
+        <strong>✅ نجاح:</strong> @TempData["SuccessMessage"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+
+    <script>
+        // إخفاء الرسالة بعد 4 ثوانٍ
+        setTimeout(() => {
+            document.querySelector('.alert')?.classList.remove('show');
+        }, 4000);
+    </script>
+}
+
+<div class="container mt-5">
+
+    <!-- بطاقات الإحصاءات -->
+    <div class="row text-center mb-4">
+        <div class="col-md-4">
+            <div class="p-4 bg-secondary text-white rounded">
+                <h3>@Model.PendingCount</h3>
+                <p>الصلاحيات التي تحت الانتظار</p>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="p-4 bg-secondary text-white rounded">
+                <h3>@Model.ApprovedCount</h3>
+                <p>الصلاحيات المعطاة</p>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="p-4 bg-secondary text-white rounded">
+                <h3>@Model.ExpiredCount</h3>
+                <p>الصلاحيات المنتهية</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- جدول الطلبات -->
+    <div class="mb-4">
+        <input type="text" class="form-control mb-3" placeholder="🔍 بحث عن موظف أو قسم..." />
+        <table class="table table-bordered text-center align-middle">
+            <thead class="table-dark">
+                <tr>
+                    <th>اسم الموظف</th>
+                    <th>القسم</th>
+                    <th>مدة الصلاحية</th>
+                    <th>نوع الصلاحية</th>
+                    <th>حالة الحساب</th>
+                    <th>المدة المتبقية</th>
+                    <th>تمديد الصلاحية</th>
+                </tr>
+            </thead>
+            <tbody>
+            @foreach (var req in Model.RecentRequests)
+            {
+                var now = DateTime.UtcNow;
+                var remainingDays = req.EndDate.HasValue ? (req.EndDate.Value - now).Days : (int?)null;
+                var isActive = req.EndDate.HasValue && req.EndDate.Value >= now;
+
+                <tr>
+                    <td>@req.Name</td>
+                    <td>@req.Department</td>
+                    <td>@(req.StartDate?.ToString("yyyy/MM/dd") ?? "-") - @(req.EndDate?.ToString("yyyy/MM/dd") ?? "-")</td>
+                    <td>@req.Classification</td>
+
+                    <!-- حالة الحساب -->
+                    <td class="@(isActive ? "text-success fw-bold" : "text-danger fw-bold")">
+                        @(isActive ? "نشط" : "غير نشط")
+                    </td>
+
+                    <!-- المدة المتبقية -->
+                    <td>
+                        @(remainingDays.HasValue ? $"{remainingDays} يوم" : "-")
+                    </td>
+
+                    <!-- زر التمديد -->
+                    <td>
+                        <form asp-action="Extend" asp-controller="Dashboard" method="post" style="display:inline;">
+                            <input type="hidden" name="id" value="@req.Id" />
+                            <input type="number" name="months" min="1" max="12" value="1"
+                                   class="form-control d-inline-block text-center"
+                                   style="width:70px; display:inline;" />
+                            <button type="submit" class="btn btn-sm btn-primary ms-2">تمديد</button>
+                        </form>
+                    </td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+
+    <!-- الرسوم البيانية -->
+    <div class="row mt-5 text-center">
+        <div class="col-md-4">
+            <canvas id="requestsChart"></canvas>
+            <p>عدد الطلبات لكل قسم</p>
+        </div>
+        <div class="col-md-4">
+            <canvas id="rejectedChart"></canvas>
+            <p>عدد الطلبات المرفوضة</p>
+        </div>
+        <div class="col-md-4">
+            <canvas id="yearlyChart"></canvas>
+            <p>عدد الطلبات خلال السنة</p>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        const deptLabels = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.RequestsByDepartment.Select(x => x.Department)));
+        const deptCounts = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.RequestsByDepartment.Select(x => x.Count)));
+
+        const rejectedLabels = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.RejectedByDepartment.Select(x => x.Department)));
+        const rejectedCounts = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.RejectedByDepartment.Select(x => x.Count)));
+
+        new Chart(document.getElementById('requestsChart'), {
+            type: 'bar',
+            data: {
+                labels: deptLabels,
+                datasets: [{ label: 'عدد الطلبات', data: deptCounts, backgroundColor: '#444' }]
+            }
+        });
+
+        new Chart(document.getElementById('rejectedChart'), {
+            type: 'bar',
+            data: {
+                labels: rejectedLabels,
+                datasets: [{ label: 'المرفوضة', data: rejectedCounts, backgroundColor: '#880000' }]
+            }
+        });
+
+        new Chart(document.getElementById('yearlyChart'), {
+            type: 'line',
+            data: {
+                labels: ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'],
+                datasets: [{
+                    label: 'عدد الطلبات',
+                    data: [3,5,8,6,10,7,12,9,11,8,6,10],
+                    borderColor: '#000', fill: false, tension: 0.3
+                }]
+            }
+        });
+    </script>
+}

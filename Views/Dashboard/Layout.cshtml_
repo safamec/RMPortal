@@ -1,0 +1,3 @@
+<li class="nav-item">
+    <a class="nav-link" asp-controller="Dashboard" asp-action="Index">لوحة التحكم</a>
+</li>
