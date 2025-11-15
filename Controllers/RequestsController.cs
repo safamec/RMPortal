@@ -16,20 +16,17 @@ namespace RMPortal.Controllers
     {
         private readonly AppDbContext _db;
         private readonly IFakeAdService _ad;
-        private readonly IEmailService _email;
         private readonly IHubContext<NotificationHub> _hub;
         private readonly IWorkflowNotifier _notifier;
 
         public RequestsController(
             AppDbContext db,
             IFakeAdService ad,
-            IEmailService email,
             IHubContext<NotificationHub> hub,
             IWorkflowNotifier notifier)
         {
             _db = db;
             _ad = ad;
-            _email = email;
             _hub = hub;
             _notifier = notifier;
         }
@@ -120,22 +117,16 @@ namespace RMPortal.Controllers
             // إشعار موحّد للطالب (بدون أي ذكر لـ Security)
             await _notifier.RequestSubmittedAsync(req, Url);
 
-            // إشعار المدير بالبريد + توست لمجموعة المدراء
+            // إرسال إيميل للمدير مع روابط Approve/Reject (من الـ WorkflowNotifier)
+            if (_notifier is WorkflowNotifier wf)
+            {
+                await wf.SendManagerReviewEmailAsync(req, Url);
+            }
+
+            // إشعار المدير عبر توست لمجموعة المدراء (بدون إيميل من الكنترولر)
             var managerSam = _ad.GetManagerSam(req.CreatedBySam);
             if (!string.IsNullOrWhiteSpace(managerSam))
             {
-                var mgr = _ad.GetUser(managerSam);
-                if (mgr != null && !string.IsNullOrWhiteSpace(mgr.Email))
-                {
-                    var approvalsUrl = Url.Action("Index", "Manager", null, Request.Scheme) ?? "";
-                    await _email.SendAsync(
-                        mgr.Email,
-                        $"Request {req.RequestNumber} awaiting your review",
-                        $@"<p>Dear {mgr.DisplayName},</p>
-                           <p>Request <b>{req.RequestNumber}</b> awaits your approval.</p>
-                           <p><a href=""{approvalsUrl}"">Open Approvals</a></p>");
-                }
-
                 await _hub.Clients.Group("RM_LineManagers")
                     .SendAsync("toast", $"Req {req.RequestNumber} needs your review.");
             }

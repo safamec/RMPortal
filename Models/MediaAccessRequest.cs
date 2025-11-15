@@ -33,6 +33,8 @@ public string? RequestNumber { get; set; }
     public DateTime? ManagerSignAt { get; set; }
     public DateTime? SecuritySignAt { get; set; }
     public DateTime? ITSignAt { get; set; }
-
-    public List<RequestDecision> Decisions { get; set; } = new();
+  // === NEW: email approval tokens ===
+    public string? EmailActionToken { get; set; }
+    public DateTime? TokenExpiresAt { get; set; } 
+       public List<RequestDecision> Decisions { get; set; } = new();
 }

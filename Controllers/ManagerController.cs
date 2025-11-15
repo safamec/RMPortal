@@ -14,14 +14,12 @@ public class ManagerController : Controller
 {
     private readonly AppDbContext _db;
     private readonly IFakeAdService _ad;
-    private readonly IEmailService _email;
     private readonly IWorkflowNotifier _notifier;
 
-    public ManagerController(AppDbContext db, IFakeAdService ad, IEmailService email, IWorkflowNotifier notifier)
+    public ManagerController(AppDbContext db, IFakeAdService ad, IWorkflowNotifier notifier)
     {
         _db = db;
         _ad = ad;
-        _email = email;
         _notifier = notifier;
     }
 
@@ -47,19 +45,22 @@ public class ManagerController : Controller
             .Include(r => r.Decisions)
             .FirstOrDefaultAsync(r => r.Id == id);
 
-        if (req == null) return NotFound();
+        if (req == null)
+            return NotFound();
+
         return View(req);
     }
 
-    // ======= APPROVE: إلى قسم IT مباشرة + بريد للمستخدم عبر Notifier فقط =======
+    // ========== APPROVE ==========
+    // Manager Approved → goes to Security
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Approve(int id, string? notes)
     {
         var req = await _db.Requests.FindAsync(id);
-        if (req == null || req.Status != RequestStatus.Submitted) return BadRequest();
+        if (req == null || req.Status != RequestStatus.Submitted)
+            return BadRequest();
 
-        // تغيير الحالة إلى ManagerApproved
         req.Status = RequestStatus.ManagerApproved;
         req.ManagerSignAt = DateTime.UtcNow;
 
@@ -75,16 +76,15 @@ public class ManagerController : Controller
 
         await _db.SaveChangesAsync();
 
-        // بريد المستخدم (موحّد عبر الـ Notifier فقط)
+        // إيميل موحّد (Template) عبر الـ Notifier
         await _notifier.ManagerApprovedAsync(req, Url);
 
-        // إشعار IT
-        await NotifyIT(req);
+        // (لا يوجد إرسال إيميل مباشر من هنا بعد الآن)
 
         return RedirectToAction(nameof(Index));
     }
 
-    // ======= REJECT: بريد رفض للمستخدم عبر Notifier فقط =======
+    // ========== REJECT ==========
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Reject(int id, string? notes)
@@ -107,19 +107,22 @@ public class ManagerController : Controller
 
         await _db.SaveChangesAsync();
 
-        // بريد المستخدم (موحّد عبر الـ Notifier فقط)
+        // Template رفض موحّد عبر الـ Notifier
         await _notifier.RejectedAsync(req, rejectedBy: "Line Manager", notes, Url);
+
+        // (لا يوجد إرسال إيميل مباشر من هنا بعد الآن)
 
         return RedirectToAction(nameof(Index));
     }
 
-    // ======= DELAY: تعليق الطلب مؤقتًا (يبقى بريد بسيط للمستخدم هنا) =======
+    // ========== DELAY / ON-HOLD ==========
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Delay(int id, string? notes)
     {
         var req = await _db.Requests.FindAsync(id);
-        if (req == null || req.Status != RequestStatus.Submitted) return BadRequest();
+        if (req == null || req.Status != RequestStatus.Submitted)
+            return BadRequest();
 
         req.Status = RequestStatus.OnHold;
 
@@ -135,42 +138,8 @@ public class ManagerController : Controller
 
         await _db.SaveChangesAsync();
 
-        // بريد توضيحي للمستخدم (هذا الحدث فقط يبقى هنا)
-        await NotifyRequester(req, "put on hold by your Line Manager. This is not a rejection. Notes: " + (notes ?? "(no notes)"));
+        // (لا يوجد إرسال إيميل Delay من الكنترولر بعد الآن)
+
         return RedirectToAction(nameof(Index));
-    }
-
-    // ===== Helpers =====
-
-    // إشعار IT (RM_ITAdmins)
-    private async Task NotifyIT(MediaAccessRequest req)
-    {
-        var itUsers = _ad.GetUsersInGroup("RM_ITAdmins");
-        foreach (var u in itUsers.Where(u => !string.IsNullOrWhiteSpace(u.Email)))
-        {
-            var url = Url.Action("Index", "IT", new { area = "Approvals" }, Request.Scheme) ?? "";
-            await _email.SendAsync(
-                u.Email,
-                $"Request {req.RequestNumber} awaiting IT action",
-                $@"<p>Dear {u.DisplayName},</p>
-                   <p>Request <b>{req.RequestNumber}</b> has been approved by Line Manager and is ready for IT action.</p>
-                   <p><a href=""{url}"">Open IT Inbox</a></p>");
-        }
-    }
-
-    // بريد بسيط للمستخدم (يُستخدم حاليًا في Delay فقط)
-    private async Task NotifyRequester(MediaAccessRequest req, string message)
-    {
-        var requester = _ad.GetUser(req.CreatedBySam);
-        if (requester != null && !string.IsNullOrWhiteSpace(requester.Email))
-        {
-            var detailsUrl = Url.Action("Details", "Requests", new { id = req.Id }, Request.Scheme) ?? "";
-            await _email.SendAsync(
-                requester.Email,
-                $"Update on your request {req.RequestNumber}",
-                $@"<p>Dear {requester.DisplayName},</p>
-                   <p>Your request <b>{req.RequestNumber}</b> was {System.Net.WebUtility.HtmlEncode(message)}</p>
-                   <p><a href=""{detailsUrl}"">View Details</a></p>");
-        }
     }
 }
